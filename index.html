@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leitor de Mangá V2</title>
+    <title>Leitor de Mangá ACY</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #121212; color: #fff; font-family: sans-serif; padding-top: 70px; user-select: none; }
@@ -41,52 +41,51 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO FIXA: Link do seu blog conectado diretamente
-        const URL_DO_BLOG = "bootsleg.blogspot.com"; 
+        // CONFIGURAÇÃO MANUAL DEFINITIVA
+        var URL_DO_BLOG = "://blogspot.com"; 
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const mangaParametros = urlParams.get('manga');
+        var urlParams = new URLSearchParams(window.location.search);
+        var mangaParametros = urlParams.get('manga');
 
-        const container = document.getElementById('manga-container');
-        const statusMsg = document.getElementById('status-msg');
-        const btnAnt = document.getElementById('btn-ant');
-        const btnProx = document.getElementById('btn-prox');
-        const selectCapitulo = document.getElementById('select-capitulo');
-        const selectModo = document.getElementById('select-modo');
-        const pageCounter = document.getElementById('page-counter');
+        var container = document.getElementById('manga-container');
+        var statusMsg = document.getElementById('status-msg');
+        var btnAnt = document.getElementById('btn-ant');
+        var btnProx = document.getElementById('btn-prox');
+        var selectCapitulo = document.getElementById('select-capitulo');
+        var selectModo = document.getElementById('select-modo');
+        var pageCounter = document.getElementById('page-counter');
 
-        let mangaNomeBase = "";
-        let capituloAtual = 1;
-        let listaImagens = [];
-        let indexPaginaAtual = 0;
-        let modoLeitura = "cascade";
+        var mangaNomeBase = "";
+        var capituloAtual = 1;
+        var listaImagens = [];
+        var indexPaginaAtual = 0;
+        var modoLeitura = "cascade";
 
         if (mangaParametros) {
-            const partes = mangaParametros.split('-');
+            var partes = mangaParametros.split('-');
             capituloAtual = parseInt(partes.pop());
             mangaNomeBase = partes.join('-');
         }
 
-        const timeoutSeguranca = setTimeout(() => {
-            statusMsg.innerHTML = `O Blogger demorou muito para responder.<br><br>
-            <span style="color:#aaa; font-weight:normal; font-size:14px;">
-            Verifique se você criou uma postagem no Blogger e adicionou o marcador exato: <strong>${mangaParametros}</strong><br>
-            Certifique-se também de que o acesso às postagens do seu blog está configurado como 'Público'.
-            </span>`;
+        var timeoutSeguranca = setTimeout(function() {
+            statusMsg.innerHTML = "O Blogger não enviou os dados do mangá.<br><br>" +
+            "<span style='color:#aaa; font-weight:normal; font-size:14px;'>" +
+            "Se o site travar aqui, verifique se a postagem do capítulo está como <strong>Publicada</strong> no Blogger e se possui exatamente a tag marcador: <strong>" + mangaParametros + "</strong>" +
+            "</span>";
         }, 5000);
 
-        // API 1: Loop compatível para gerar a lista de capítulos
+        // API 1: Monta a lista dropdown com os capítulos cadastrados no Blogger
         window.listarCapitulosBlogger = function(data) {
-            if (data &amp;&amp; data.feed &amp;&amp; data.feed.entry) {
+            if (data && data.feed && data.feed.entry) {
                 selectCapitulo.innerHTML = "";
-                let capsEncontrados = [];
+                var capsEncontrados = [];
                 
                 data.feed.entry.forEach(function(post) {
                     if (post.category) {
                         post.category.forEach(function(cat) {
-                            if (cat.term &amp;&amp; cat.term.indexOf(mangaNomeBase + "-") === 0) {
-                                let numCap = parseInt(cat.term.replace(mangaNomeBase + "-", ""));
-                                if (!isNaN(numCap) &amp;&amp; capsEncontrados.indexOf(numCap) === -1) {
+                            if (cat.term && cat.term.indexOf(mangaNomeBase + "-") === 0) {
+                                var numCap = parseInt(cat.term.replace(mangaNomeBase + "-", ""));
+                                if (!isNaN(numCap) && capsEncontrados.indexOf(numCap) === -1) {
                                     capsEncontrados.push(numCap);
                                 }
                             }
@@ -96,7 +95,7 @@
                 
                 capsEncontrados.sort(function(a, b) { return b - a; });
                 capsEncontrados.forEach(function(cap) {
-                    const opt = document.createElement('option');
+                    var opt = document.createElement('option');
                     opt.value = mangaNomeBase + "-" + cap;
                     opt.textContent = "Capítulo " + String(cap).padStart(2, '0');
                     if (cap === capituloAtual) opt.selected = true;
@@ -106,40 +105,37 @@
             }
         };
 
-        // API 2: Extrai as imagens do post atual
+        // API 2: Carrega e limpa as imagens da postagem
         window.processarPaginasManga = function(data) {
             clearTimeout(timeoutSeguranca);
             try {
-                if (!data || !data.feed || !data.feed.entry || data.feed.entry.length === 0) {
-                    statusMsg.innerHTML = `Marcador não encontrado!<br><br>
-                    <span style="color:#aaa; font-weight:normal; font-size:14px;">
-                    O leitor procurou pela tag "<strong>${mangaParametros}</strong>" no seu blog, mas não achou nenhuma postagem.<br>
-                    Vá no seu painel do Blogger e garanta que o seu post tem o marcador: <strong>${mangaParametros}</strong>
-                    </span>`;
+                if (!data || !data.feed || !data.feed.entry) {
+                    statusMsg.innerHTML = "Marcador não encontrado!<br><br>" +
+                    "<span style='color:#aaa; font-weight:normal; font-size:14px;'>O leitor procurou pela tag '<strong>" + mangaParametros + "</strong>' no Blogger mas ela não existe ou o post está em rascunho.</span>";
                     return;
                 }
 
-                // Se o Blogger retornar uma lista de posts, pegamos o primeiro item válido
-                const postagem = Array.isArray(data.feed.entry) ? data.feed.entry[0] : data.feed.entry;
+                var postagem = data.feed.entry;
+                var tituloPost = postagem.title ? (postagem.title['$t'] || postagem.title) : "Capítulo";
+                var conteudoPost = postagem.content ? (postagem.content['$t'] || postagem.content) : "";
                 
-                const tituloPost = postagem.title ? (postagem.title['\$t'] || postagem.title) : "Capítulo";
-                const conteudoPost = postagem.content ? (postagem.content['\$t'] || postagem.content) : "";
-                
-                document.title = typeof tituloPost === 'object' ? tituloPost['\$t'] : tituloPost;
+                document.title = typeof tituloPost === 'object' ? tituloPost['$t'] : tituloPost;
 
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = typeof conteudoPost === 'object' ? conteudoPost['\$t'] : conteudoPost;
-                const imagensTags = tempDiv.getElementsByTagName('img');
+                var tempDiv = document.createElement('div');
+                tempDiv.innerHTML = typeof conteudoPost === 'object' ? conteudoPost['$t'] : conteudoPost;
+                var imagensTags = tempDiv.getElementsByTagName('img');
 
                 if (imagensTags.length === 0) {
-                    statusMsg.textContent = "Este post do Blogger foi encontrado, mas não possui imagens dentro dele.";
+                    statusMsg.textContent = "Este post do Blogger foi encontrado, mas não possui nenhuma imagem dentro.";
                     return;
                 }
 
                 listaImagens = [];
-                for (let i = 0; i < imagensTags.length; i++) {
-                    let urlLimpa = imagensTags[i].src.replace(/\/s[0-9]+(-c)?\//, '/s1600/');
+                for (var i = 0; i < imagensTags.length; i++) {
+                    var urlLimpa = imagensTags[i].src.replace(/\/s[0-9]+(-c)?\//, '/s1600/');
                     urlLimpa = urlLimpa.replace(/=w[0-9]+-h[0-9]+.*/, '=s0');
+                    // Remove protocolo misto se necessário para evitar bloqueios de segurança
+                    urlLimpa = urlLimpa.replace("http://", "https://");
                     listaImagens.push(urlLimpa);
                 }
                 renderizarLeitor();
@@ -153,8 +149,8 @@
             if (modoLeitura === "cascade") {
                 container.className = "mode-cascade";
                 pageCounter.style.display = "none";
-                listaImagens.forEach(url => {
-                    const img = document.createElement('img');
+                listaImagens.forEach(function(url) {
+                    var img = document.createElement('img');
                     img.src = url;
                     img.loading = "lazy";
                     container.appendChild(img);
@@ -163,9 +159,9 @@
                 container.className = "mode-single";
                 pageCounter.style.display = "inline";
                 pageCounter.textContent = "Pág: " + (indexPaginaAtual + 1) + " / " + listaImagens.length;
-                const img = document.createElement('img');
+                var img = document.createElement('img');
                 img.src = listaImagens[indexPaginaAtual];
-                img.addEventListener('click', (e) => {
+                img.addEventListener('click', function(e) {
                     if (e.offsetX > img.clientWidth / 2) {
                         if (indexPaginaAtual < listaImagens.length - 1) { indexPaginaAtual++; renderizarLeitor(); window.scrollTo(0,0); }
                         else { btnProx.click(); }
@@ -178,22 +174,24 @@
             }
         }
 
-        selectCapitulo.addEventListener('change', (e) => { if (e.target.value) window.location.search = "?manga=" + e.target.value; });
-        btnAnt.onclick = () => { if (capituloAtual > 1) window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual - 1); };
-        btnProx.onclick = () => { window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual + 1); };
+        selectCapitulo.addEventListener('change', function(e) { if (e.target.value) window.location.search = "?manga=" + e.target.value; });
+        btnAnt.onclick = function() { if (capituloAtual > 1) window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual - 1); };
+        btnProx.onclick = function() { window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual + 1); };
         if (capituloAtual <= 1) btnAnt.disabled = true;
-selectModo.addEventListener('change', (e) => { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
-function carregarSistema() {
-if (!mangaParametros) {
-clearTimeout(timeoutSeguranca);
+        selectModo.addEventListener('change', function(e) { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
+
+        function carregarSistema() {
+            if (!mangaParametros) {
+                clearTimeout(timeoutSeguranca);
 statusMsg.innerHTML = "URL Incompleta.
-Acesse usando: leitor.html?manga=nome-do-manga-1";
+Acesse usando: ?manga=nome-do-manga-1";
 return;
 }
-const scriptPost = document.createElement('script');
+// Injeção puramente limpa para quebrar bloqueios CORS da Google
+var scriptPost = document.createElement('script');
 scriptPost.src = "https://" + URL_DO_BLOG + "/feeds/posts/default/-/" + mangaParametros + "?alt=json-in-script&callback=processarPaginasManga&max-results=1";
 document.body.appendChild(scriptPost);
-const scriptLista = document.createElement('script');
+var scriptLista = document.createElement('script');
 scriptLista.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=listarCapitulosBlogger&max-results=50";
 document.body.appendChild(scriptLista);
 }
