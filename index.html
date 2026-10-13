@@ -42,18 +42,18 @@
     <!-- BARRA SUPERIOR DINÂMICA -->
     <header>
         <div class="controls" id="header-controls">
-            <!-- Os controles vão mudar via JavaScript dependendo da página -->
+            <!-- Injetado via JavaScript -->
         </div>
     </header>
 
     <!-- ÁREA PRINCIPAL DO CONTEÚDO -->
     <main id="main-layout">
-        <!-- O JavaScript vai injetar o Catálogo ou o Leitor aqui dentro -->
+        <!-- Injetado via JavaScript -->
     </main>
 
     <script>
-        // CONFIGURAÇÃO DO SEU BLOG
-        var URL_DO_BLOG = "://yanderescan.blogspot.com"; 
+        // CONFIGURAÇÃO DO SEU BLOG DO BLOGGER
+        var URL_DO_BLOG = "://blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
         var mangaParametros = urlParams.get('manga');
@@ -69,7 +69,7 @@
         var modoLeitura = "cascade";
         var btnAnt, btnProx, selectCapitulo, selectModo, pageCounter, statusMsg;
 
-        // Verifica se abre o LEITOR ou o CATÁLOGO
+        // Gerenciador de Inicialização
         if (mangaParametros) {
             var partes = mangaParametros.split('-');
             capituloAtual = parseInt(partes.pop());
@@ -86,13 +86,11 @@
         // ==========================================
         function montarEstruturaCatalogo() {
             document.title = "Yandere Scan - Catálogo Gratuito";
-            headerControls.innerHTML = `<a href="${window.location.pathname}" class="btn-home">🏠 YANDERE SCAN</a>`;
-            mainLayout.innerHTML = `
-                <h1 class="catalog-title">Catálogo de Obras</h1>
-                <div class="grid-catalog" id="catalog-grid">
-                    <p class="msg" style="color: #888; grid-column: 1/-1;">Carregando acervo de mangás...</p>
-                </div>
-            `;
+            headerControls.innerHTML = '<a href="' + window.location.pathname + '" class="btn-home">🏠 YANDERE SCAN</a>';
+            mainLayout.innerHTML = '<h1 class="catalog-title">Catálogo de Obras</h1>' +
+                                   '<div class="grid-catalog" id="catalog-grid">' +
+                                   '<p class="msg" style="color: #888; grid-column: 1/-1;">Conectando ao banco de dados do Blogger...</p>' +
+                                   '</div>';
         }
 
         function carregarDadosCatalogo() {
@@ -106,7 +104,7 @@
             if (!grid) return;
             
             if (!data || !data.feed || !data.feed.entry) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado no catálogo ou feed desativado.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado ou o feed do seu Blogger está desativado.</p>";
                 return;
             }
 
@@ -123,11 +121,9 @@
                         var nomeManga = parts.join('-');
                         
                         if (!isNaN(capNum)) {
-                            // Se a obra ainda não existe ou encontramos um capítulo mais recente
                             if (!catalogados[nomeManga] || capNum > catalogados[nomeManga].ultimoCap) {
                                 
-                                // Coleta de imagem de forma blindada
-                                var capaUrl = "https://unsplash.com"; // Capa provisória se falhar
+                                var capaUrl = "https://unsplash.com"; 
                                 if (post.content && post.content['$t']) {
                                     var txtHtml = post.content['$t'];
                                     var idxImg = txtHtml.indexOf('<img');
@@ -143,11 +139,10 @@
                                     }
                                 }
 
-                                // Limpeza estática simples do título
                                 var rawTitulo = (post.title && post.title['$t']) ? post.title['$t'] : "Mangá";
                                 var corte = rawTitulo.split('-');
                                 if (corte.length > 1) { corte.pop(); }
-                                var tituloLimpo = corte.join('-').replace(/^\s+|\s+$/g, ''); // Trim alternativo compatível
+                                var tituloLimpo = corte.join('-').replace(/^\s+|\s+$/g, ''); 
 
                                 catalogados[nomeManga] = {
                                     titulo: tituloLimpo || rawTitulo,
@@ -163,7 +158,7 @@
 
             var keys = Object.keys(catalogados);
             if (keys.length === 0) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada no padrão 'nome-capitulo' foi encontrada.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra com o marcador formatado (ex: 'bootsleg-1') foi encontrada.</p>";
                 return;
             }
 
@@ -173,15 +168,13 @@
                 card.className = "manga-card";
                 card.href = window.location.pathname + "?manga=" + manga.slug;
                 
-                card.innerHTML = `
-                    <div class="manga-cover-wrapper">
-                        <img src="${manga.capa}" class="manga-cover" alt="${manga.titulo}">
-                    </div>
-                    <div class="manga-info">
-${manga.titulo}
-Cap. ${String(manga.ultimoCap).padStart(2, '0')}
-
-`;
+                card.innerHTML = '<div class="manga-cover-wrapper">' +
+                                 '<img src="' + manga.capa + '" class="manga-cover" alt="' + manga.titulo + '">' +
+                                 '</div>' +
+                                 '<div class="manga-info">' +
+                                 '<div class="manga-title">' + manga.titulo + '</div>' +
+                                 '<div class="manga-latest">Cap. ' + String(manga.ultimoCap).padStart(2, '0') + '</div>' +
+                                 '</div>';
 grid.appendChild(card);
 });
 };
@@ -189,8 +182,16 @@ grid.appendChild(card);
 // FLUXO 2: SISTEMA DO LEITOR (FOOLSLIDE)
 // ==========================================
 function montarEstruturaLeitor() {
-headerControls.innerHTML = <a href="${window.location.pathname}" class="btn-nav" style="background:#444;">🏠 Menu</a> <button id="btn-ant" class="btn-nav">◀ Ant</button> <select id="select-capitulo"><option value="">Buscando...</option></select> <button id="btn-prox" class="btn-nav">Prox ▶</button> <select id="select-modo"> <option value="cascade">Modo: Cascata</option> <option value="single">Modo: Página por Página</option> </select> <span id="page-counter" style="display: none;">Pág: 1/1</span>;
-mainLayout.innerHTML = <p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>;
+headerControls.innerHTML = '🏠 Menu' +
+'◀ Ant' +
+'Buscando...' +
+'Prox ▶' +
+'' +
+'Modo: Cascata' +
+'Modo: Página por Página' +
+'' +
+'Pág: 1/1';
+mainLayout.innerHTML = 'Conectando ao banco de dados do Blogger...';
 btnAnt = document.getElementById('btn-ant');
 btnProx = document.getElementById('btn-prox');
 selectCapitulo = document.getElementById('select-capitulo');
@@ -204,7 +205,7 @@ if(statusMsg) {
 statusMsg.innerHTML = "O Blogger demorou para responder.
 
 " +
-"Verifique se o post está publicado no Blogger com o marcador: " + mangaParametros + "";
+"Verifique se o post está publicado com a tag: " + mangaParametros + "";
 }
 }, 6000);
 window.listarCapitulosBlogger = function(data) {
