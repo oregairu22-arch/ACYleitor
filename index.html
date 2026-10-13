@@ -36,7 +36,7 @@
     </header>
 
     <main id="main-layout">
-        <!-- Estrutura inicial -->
+        <!-- Estrutura dinâmica -->
     </main>
 
     <script>
@@ -73,16 +73,16 @@
         }
 
         function carregarDadosCatalogo() {
-            // Nova Rota Segura RSS Convertida em JSON para quebrar bloqueios globais
+            // Método nativo JSON-in-script direto com tratamento de bypass
             var script = document.createElement('script');
-            script.src = "https://rss2json.com" + URL_DO_BLOG + "/feeds/posts/default&callback=gerarCatalogoAutomatico&api_key=oyg4skcndbyzbe60p3moxbyr6scwunwhuolv90ay";
+            script.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=gerarCatalogoAutomatico&max-results=50";
             document.body.appendChild(script);
         }
 
         window.gerarCatalogoAutomatico = function(data) {
             var grid = document.getElementById('catalog-grid');
             if (!grid) return;
-            if (!data || !data.items || data.items.length === 0) {
+            if (!data || !data.feed || !data.feed.entry) {
                 grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado ou o feed do seu Blogger está desativado.</p>";
                 return;
             }
@@ -90,26 +90,40 @@
             grid.innerHTML = ""; 
             var catalogados = {}; 
 
-            data.items.forEach(function(post) {
-                if (!post.categories || post.categories.length === 0) return;
-                post.categories.forEach(function(tag) {
-                    if (tag && tag.indexOf('-') !== -1) {
-                        var parts = tag.split('-');
+            data.feed.entry.forEach(function(post) {
+                if (!post.category) return;
+                post.category.forEach(function(cat) {
+                    if (cat.term && cat.term.indexOf('-') !== -1) {
+                        var parts = cat.term.split('-');
                         var capNum = parseInt(parts.pop());
                         var nomeManga = parts.join('-');
                         
                         if (!isNaN(capNum)) {
                             if (!catalogados[nomeManga] || capNum > catalogados[nomeManga].ultimoCap) {
-                                var capaUrl = post.thumbnail || "https://unsplash.com"; 
-                                
-                                var rawTitulo = post.title ? post.title : "Mangá";
+                                var capaUrl = "https://unsplash.com"; 
+                                if (post.content && post.content['$t']) {
+                                    var txtHtml = post.content['$t'];
+                                    var idxImg = txtHtml.indexOf('<img');
+                                    if (idxImg !== -1) {
+                                        var idxSrc = txtHtml.indexOf('src="', idxImg);
+                                        if (idxSrc !== -1) {
+                                            var fimSrc = txtHtml.indexOf('"', idxSrc + 5);
+                                            if (fimSrc !== -1) {
+                                                capaUrl = txtHtml.substring(idxSrc + 5, fimSrc);
+                                                capaUrl = capaUrl.replace(/\/s[0-9]+(-c)?\//, '/s600/').replace(/=w[0-9]+-h[0-9]+.*/, '=s0');
+                                            }
+                                        }
+                                    }
+                                }
+
+                                var rawTitulo = (post.title && post.title['$t']) ? post.title['$t'] : "Mangá";
                                 var corte = rawTitulo.split('-');
                                 if (corte.length > 1) { corte.pop(); }
                                 var tituloLimpo = corte.join('-').trim();
 
                                 catalogados[nomeManga] = {
                                     titulo: tituloLimpo || rawTitulo,
-                                    slug: tag, 
+                                    slug: cat.term, 
                                     ultimoCap: capNum,
                                     capa: capaUrl
                                 };
@@ -121,7 +135,7 @@
 
             var keys = Object.keys(catalogados);
             if (keys.length === 0) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada no padrão 'nome-1' foi encontrada.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada foi encontrada.</p>";
                 return;
             }
 
@@ -146,34 +160,32 @@
                                        '</select>' +
                                        '<span id="page-counter" style="display: none;">Pág: 1/1</span>';
                                        
-            mainLayout.innerHTML = '<p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>';
-            
-            btnAnt = document.getElementById('btn-ant');
-            btnProx = document.getElementById('btn-prox');
-            selectCapitulo = document.getElementById('select-capitulo');
-            selectModo = document.getElementById('select-modo');
-            pageCounter = document.getElementById('page-counter');
-            statusMsg = document.getElementById('status-msg');
-        }
 
-        function carregarDadosLeitor() {
-            var timeoutSeguranca = setTimeout(function() {
-                if(statusMsg) {
-
+mainLayout.innerHTML = 'Conectando ao banco de dados do Blogger...';
+btnAnt = document.getElementById('btn-ant');
+btnProx = document.getElementById('btn-prox');
+selectCapitulo = document.getElementById('select-capitulo');
+selectModo = document.getElementById('select-modo');
+pageCounter = document.getElementById('page-counter');
+statusMsg = document.getElementById('status-msg');
+}
+function carregarDadosLeitor() {
+var timeoutSeguranca = setTimeout(function() {
+if(statusMsg) {
 statusMsg.innerHTML = "O Blogger demorou para responder.
 
 Verifique se o post está publicado com a tag: " + mangaParametros + "";
 }
 }, 6000);
 window.listarCapitulosBlogger = function(data) {
-if (data && data.items && selectCapitulo) {
+if (data && data.feed && data.feed.entry && selectCapitulo) {
 selectCapitulo.innerHTML = "";
 var capsEncontrados = [];
-data.items.forEach(function(post) {
-if (post.categories) {
-post.categories.forEach(function(tag) {
-if (tag && tag.indexOf(mangaNomeBase + "-") === 0) {
-var numCap = parseInt(tag.replace(mangaNomeBase + "-", ""));
+data.feed.entry.forEach(function(post) {
+if (post.category) {
+post.category.forEach(function(cat) {
+if (cat.term && cat.term.indexOf(mangaNomeBase + "-") === 0) {
+var numCap = parseInt(cat.term.replace(mangaNomeBase + "-", ""));
 if (!isNaN(numCap) && capsEncontrados.indexOf(numCap) === -1) capsEncontrados.push(numCap);
 }
 });
@@ -192,25 +204,18 @@ selectCapitulo.appendChild(opt);
 window.processarPaginasManga = function(data) {
 clearTimeout(timeoutSeguranca);
 try {
-if (!data || !data.items || data.items.length === 0) {
+if (!data || !data.feed || !data.feed.entry) {
 statusMsg.innerHTML = "Marcador não encontrado!
 
 Verifique a tag '" + mangaParametros + "' no Blogger.";
 return;
 }
-// Encontra o post específico correspondente à tag atual
-var postagem = null;
-data.items.forEach(function(item) {
-if (item.categories && item.categories.indexOf(mangaParametros) !== -1) {
-postagem = item;
-}
-});
-if (!postagem) postagem = data.items[0];
-var tituloPost = postagem.title ? postagem.title : "Capítulo";
-var conteudoPost = postagem.content ? postagem.content : "";
-document.title = tituloPost;
+var postagem = Array.isArray(data.feed.entry) ? data.feed.entry[0] : data.feed.entry;
+var tituloPost = postagem.title ? (postagem.title['$t'] || postagem.title) : "Capítulo";
+var conteudoPost = postagem.content ? (postagem.content['$t'] || postagem.content) : "";
+document.title = typeof tituloPost === 'object' ? tituloPost['$t'] : tituloPost;
 var tempDiv = document.createElement('div');
-tempDiv.innerHTML = conteudoPost;
+tempDiv.innerHTML = typeof conteudoPost === 'object' ? conteudoPost['$t'] : conteudoPost;
 var imagensTags = tempDiv.getElementsByTagName('img');
 if (imagensTags.length === 0) {
 statusMsg.textContent = "Este post não possui imagens dentro dele.";
@@ -228,11 +233,16 @@ statusMsg.textContent = "Erro: " + error.message;
 }
 };
 var scriptPost = document.createElement('script');
-scriptPost.src = "rss2json.com" + URL_DO_BLOG + "/feeds/posts/default/-/" + mangaParametros + "&callback=processarPaginasManga&api_key=oyg4skcndbyzbe60p3moxbyr6scwunwhuolv90ay";
+scriptPost.src = "https://" + URL_DO_BLOG + "/feeds/posts/default/-/" + mangaParametros + "?alt=json-in-script&callback=processarPaginasManga&max-results=1";
 document.body.appendChild(scriptPost);
 var scriptLista = document.createElement('script');
-scriptLista.src = "rss2json.com" + URL_DO_BLOG + "/feeds/posts/default&callback=listarCapitulosBlogger&api_key=oyg4skcndbyzbe60p3moxbyr6scwunwhuolv90ay";
+scriptLista.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=listarCapitulosBlogger&max-results=50";
 document.body.appendChild(scriptLista);
+selectCapitulo.addEventListener('change', function(e) { if (e.target.value) window.location.search = "?manga=" + e.target.value; });
+btnAnt.onclick = function() { if (capituloAtual > 1) window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual - 1); };
+btnProx.onclick = function() { window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual + 1); };
+if (capituloAtual <= 1) btnAnt.disabled = true;
+selectModo.addEventListener('change', function(e) { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
 }
 function renderizarLeitor() {
 mainLayout.innerHTML = "";
@@ -254,10 +264,10 @@ img.src = listaImagens[indexPaginaAtual];
 img.onclick = function(e) {
 if (e.offsetX > img.clientWidth / 2) {
 if (indexPaginaAtual < listaImagens.length - 1) { indexPaginaAtual++; renderizarLeitor(); window.scrollTo(0,0); }
-else { if(btnProx && !btnProx.disabled) btnProx.click(); }
+else { btnProx.click(); }
 } else {
 if (indexPaginaAtual > 0) { indexPaginaAtual--; renderizarLeitor(); window.scrollTo(0,0); }
-else { if(btnAnt && !btnAnt.disabled) btnAnt.click(); }
+else { btnAnt.click(); }
 }
 };
 mainLayout.appendChild(img);
