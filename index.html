@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yandere Scan - Oficial</title>
+    <title>Yandere Scan - Catálogo Oficial</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #121212; color: #fff; font-family: sans-serif; padding-top: 70px; user-select: none; }
@@ -36,12 +36,11 @@
     </header>
 
     <main id="main-layout">
-        <!-- Injetado via JS -->
+        <!-- Estrutura inicial -->
     </main>
 
     <script>
-        // CONFIGURAÇÃO DO SEU BLOG DO BLOGGER
-        var URL_DO_BLOG = "://yanderescan.blogspot.com"; 
+        var URL_DO_BLOG = "://blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
         var mangaParametros = urlParams.get('manga');
@@ -70,19 +69,20 @@
         function montarEstruturaCatalogo() {
             document.title = "Yandere Scan - Catálogo Gratuito";
             headerControls.innerHTML = '<a href="' + window.location.pathname + '" class="btn-home">🏠 YANDERE SCAN</a>';
-            mainLayout.innerHTML = '<h1 class="catalog-title">Catálogo de Obras</h1><div class="grid-catalog" id="catalog-grid"><p class="msg" style="color: #888; grid-column: 1/-1;">Conectando au banco de dados do Blogger...</p></div>';
+            mainLayout.innerHTML = '<h1 class="catalog-title">Catálogo de Obras</h1><div class="grid-catalog" id="catalog-grid"><p class="msg" style="color: #888; grid-column: 1/-1;">Conectando ao banco de dados do Blogger...</p></div>';
         }
 
         function carregarDadosCatalogo() {
+            // Nova Rota Segura RSS Convertida em JSON para quebrar bloqueios globais
             var script = document.createElement('script');
-            script.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=gerarCatalogoAutomatico&max-results=50";
+            script.src = "https://rss2json.com" + URL_DO_BLOG + "/feeds/posts/default&callback=gerarCatalogoAutomatico&api_key=oyg4skcndbyzbe60p3moxbyr6scwunwhuolv90ay";
             document.body.appendChild(script);
         }
 
         window.gerarCatalogoAutomatico = function(data) {
             var grid = document.getElementById('catalog-grid');
             if (!grid) return;
-            if (!data || !data.feed || !data.feed.entry) {
+            if (!data || !data.items || data.items.length === 0) {
                 grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado ou o feed do seu Blogger está desativado.</p>";
                 return;
             }
@@ -90,40 +90,26 @@
             grid.innerHTML = ""; 
             var catalogados = {}; 
 
-            data.feed.entry.forEach(function(post) {
-                if (!post.category) return;
-                post.category.forEach(function(cat) {
-                    if (cat.term && cat.term.indexOf('-') !== -1) {
-                        var parts = cat.term.split('-');
+            data.items.forEach(function(post) {
+                if (!post.categories || post.categories.length === 0) return;
+                post.categories.forEach(function(tag) {
+                    if (tag && tag.indexOf('-') !== -1) {
+                        var parts = tag.split('-');
                         var capNum = parseInt(parts.pop());
                         var nomeManga = parts.join('-');
                         
                         if (!isNaN(capNum)) {
                             if (!catalogados[nomeManga] || capNum > catalogados[nomeManga].ultimoCap) {
-                                var capaUrl = "https://unsplash.com"; 
-                                if (post.content && post.content['$t']) {
-                                    var txtHtml = post.content['$t'];
-                                    var idxImg = txtHtml.indexOf('<img');
-                                    if (idxImg !== -1) {
-                                        var idxSrc = txtHtml.indexOf('src="', idxImg);
-                                        if (idxSrc !== -1) {
-                                            var fimSrc = txtHtml.indexOf('"', idxSrc + 5);
-                                            if (fimSrc !== -1) {
-                                                capaUrl = txtHtml.substring(idxSrc + 5, fimSrc);
-                                                capaUrl = capaUrl.replace(/\/s[0-9]+(-c)?\//, '/s600/').replace(/=w[0-9]+-h[0-9]+.*/, '=s0');
-                                            }
-                                        }
-                                    }
-                                }
-
-                                var rawTitulo = (post.title && post.title['$t']) ? post.title['$t'] : "Mangá";
+                                var capaUrl = post.thumbnail || "https://unsplash.com"; 
+                                
+                                var rawTitulo = post.title ? post.title : "Mangá";
                                 var corte = rawTitulo.split('-');
                                 if (corte.length > 1) { corte.pop(); }
-                                var tituloLimpo = corte.join('-').replace(/^\s+|\s+$/g, ''); 
+                                var tituloLimpo = corte.join('-').trim();
 
                                 catalogados[nomeManga] = {
                                     titulo: tituloLimpo || rawTitulo,
-                                    slug: cat.term, 
+                                    slug: tag, 
                                     ultimoCap: capNum,
                                     capa: capaUrl
                                 };
@@ -135,7 +121,7 @@
 
             var keys = Object.keys(catalogados);
             if (keys.length === 0) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada foi encontrada.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada no padrão 'nome-1' foi encontrada.</p>";
                 return;
             }
 
@@ -144,23 +130,21 @@
                 var card = document.createElement('a');
                 card.className = "manga-card";
                 card.href = window.location.pathname + "?manga=" + manga.slug;
-                card.innerHTML = `<div class="manga-cover-wrapper"><img src="${manga.capa}" class="manga-cover" alt="${manga.titulo}"></div><div class="manga-info"><div class="manga-title">${manga.titulo}</div><div class="manga-latest">Cap. ${String(manga.ultimoCap).padStart(2, '0')}</div></div>`;
+                card.innerHTML = '<div class="manga-cover-wrapper"><img src="' + manga.capa + '" class="manga-cover" alt="' + manga.titulo + '"></div><div class="manga-info"><div class="manga-title">' + manga.titulo + '</div><div class="manga-latest">Cap. ' + String(manga.ultimoCap).padStart(2, '0') + '</div></div>';
                 grid.appendChild(card);
             });
         };
 
-                function montarEstruturaLeitor() {
-            headerControls.innerHTML = `
-                <a href="${window.location.pathname}" class="btn-nav" style="background:#444;">🏠 Menu</a>
-                <button id="btn-ant" class="btn-nav">◀ Ant</button>
-                <select id="select-capitulo"><option value="">Buscando...</option></select>
-                <button id="btn-prox" class="btn-nav">Prox ▶</button>
-                <select id="select-modo">
-                    <option value="cascade">Modo: Cascata</option>
-                    <option value="single">Modo: Página por Página</option>
-                </select>
-                <span id="page-counter" style="display: none;">Pág: 1/1</span>
-            `;
+        function montarEstruturaLeitor() {
+            headerControls.innerHTML = '<a href="' + window.location.pathname + '" class="btn-nav" style="background:#444;">🏠 Menu</a>' +
+                                       '<button id="btn-ant" class="btn-nav">◀ Ant</button>' +
+                                       '<select id="select-capitulo"><option value="">Buscando...</option></select>' +
+                                       '<button id="btn-prox" class="btn-nav">Prox ▶</button>' +
+                                       '<select id="select-modo">' +
+                                       '<option value="cascade">Modo: Cascata</option>' +
+                                       '<option value="single">Modo: Página por Página</option>' +
+                                       '</select>' +
+                                       '<span id="page-counter" style="display: none;">Pág: 1/1</span>';
                                        
             mainLayout.innerHTML = '<p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>';
             
@@ -172,100 +156,84 @@
             statusMsg = document.getElementById('status-msg');
         }
 
-function carregarDadosLeitor() {
-    var timeoutSeguranca = setTimeout(function() {
-        if (statusMsg) {
-            statusMsg.innerHTML = "O Blogger demorou para responder.<br><br>" +
-            "<span style='color:#aaa; font-weight:normal; font-size:14px;'>" +
-            "Verifique se o post está publicado com a tag: <strong>" + mangaParametros + "</strong></span>";
-        }
-    }, 6000);
-        // API 1: Monta a lista dropdown com os capítulos cadastrados no Blogger
-        window.listarCapitulosBlogger = function(data) {
-            if (!data) return;
-            if (!data.feed) return;
-            if (!data.feed.entry) return;
+        function carregarDadosLeitor() {
+            var timeoutSeguranca = setTimeout(function() {
+                if(statusMsg) {
+statusMsg.innerHTML = "O Blogger demorou para responder.
 
-            selectCapitulo.innerHTML = "";
-            var capsEncontrados = [];
-            
-            data.feed.entry.forEach(function(post) {
-                if (post.category) {
-                    post.category.forEach(function(cat) {
-                        if (cat.term) {
-                            if (cat.term.indexOf(mangaNomeBase + "-") === 0) {
-                                var numCap = parseInt(cat.term.replace(mangaNomeBase + "-", ""));
-                                if (!isNaN(numCap)) {
-                                    if (capsEncontrados.indexOf(numCap) === -1) {
-                                        capsEncontrados.push(numCap);
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-            
-            capsEncontrados.sort(function(a, b) { return b - a; });
-            capsEncontrados.forEach(function(cap) {
-                var opt = document.createElement('option');
-                opt.value = mangaNomeBase + "-" + cap;
-                opt.textContent = "Capítulo " + String(cap).padStart(2, '0');
-                if (cap === capituloAtual) opt.selected = true;
-                selectCapitulo.appendChild(opt);
-            });
-            if(capsEncontrados.length === 0) selectCapitulo.innerHTML = "<option>Nenhum capítulo</option>";
-        };
+Verifique se o post está publicado com a tag: " + mangaParametros + "";
+}
+}, 6000);
+window.listarCapitulosBlogger = function(data) {
+if (data && data.items && selectCapitulo) {
+selectCapitulo.innerHTML = "";
+var capsEncontrados = [];
+data.items.forEach(function(post) {
+if (post.categories) {
+post.categories.forEach(function(tag) {
+if (tag && tag.indexOf(mangaNomeBase + "-") === 0) {
+var numCap = parseInt(tag.replace(mangaNomeBase + "-", ""));
+if (!isNaN(numCap) && capsEncontrados.indexOf(numCap) === -1) capsEncontrados.push(numCap);
+}
+});
+}
+});
+capsEncontrados.sort(function(a, b) { return b - a; });
+capsEncontrados.forEach(function(cap) {
+var opt = document.createElement('option');
+opt.value = mangaNomeBase + "-" + cap;
+opt.textContent = "Capítulo " + String(cap).padStart(2, '0');
+if (cap === capituloAtual) opt.selected = true;
+selectCapitulo.appendChild(opt);
+});
+}
+};
+window.processarPaginasManga = function(data) {
+clearTimeout(timeoutSeguranca);
+try {
+if (!data || !data.items || data.items.length === 0) {
+statusMsg.innerHTML = "Marcador não encontrado!
 
-        // API 2: Carrega e limpa as imagens da postagem
-        window.processarPaginasManga = function(data) {
-            clearTimeout(timeoutSeguranca);
-            try {
-                if (!data || !data.feed || !data.feed.entry) {
-                    statusMsg.innerHTML = "Marcador não encontrado!<br><br>" +
-                    "<span style='color:#aaa; font-weight:normal; font-size:14px;'>O leitor procurou pela tag '<strong>" + mangaParametros + "</strong>' no Blogger, mas ela não existe ou o post está em rascunho.</span>";
-                    return;
-                }
-
-                var postagem = data.feed.entry;
-                var tituloPost = postagem.title ? (postagem.title['$t'] || postagem.title) : "Capítulo";
-                var conteudoPost = postagem.content ? (postagem.content['$t'] || postagem.content) : "";
-                
-                document.title = typeof tituloPost === 'object' ? tituloPost['$t'] : tituloPost;
-
-                var tempDiv = document.createElement('div');
-                tempDiv.innerHTML = typeof conteudoPost === 'object' ? conteudoPost['$t'] : conteudoPost;
-                var imagensTags = tempDiv.getElementsByTagName('img');
-
-                if (imagensTags.length === 0) {
-                    statusMsg.textContent = "Este post do Blogger foi encontrado, mas não possui nenhuma imagem dentro.";
-                    return;
-                }
-
-                listaImagens = [];
-
+Verifique a tag '" + mangaParametros + "' no Blogger.";
+return;
+}
+// Encontra o post específico correspondente à tag atual
+var postagem = null;
+data.items.forEach(function(item) {
+if (item.categories && item.categories.indexOf(mangaParametros) !== -1) {
+postagem = item;
+}
+});
+if (!postagem) postagem = data.items[0];
+var tituloPost = postagem.title ? postagem.title : "Capítulo";
+var conteudoPost = postagem.content ? postagem.content : "";
+document.title = tituloPost;
+var tempDiv = document.createElement('div');
+tempDiv.innerHTML = conteudoPost;
+var imagensTags = tempDiv.getElementsByTagName('img');
+if (imagensTags.length === 0) {
+statusMsg.textContent = "Este post não possui imagens dentro dele.";
+return;
+}
+listaImagens = [];
+for (var i = 0; i < imagensTags.length; i++) {
 var urlLimpa = imagensTags[i].src.replace(//s[0-9]+(-c)?//, '/s1600/');
 urlLimpa = urlLimpa.replace(/=w[0-9]+-h[0-9]+.*/, '=s0').replace("http://", "https://");
 listaImagens.push(urlLimpa);
 }
-renderizarleitor();
+renderizarLeitor();
 } catch (error) {
 statusMsg.textContent = "Erro: " + error.message;
 }
 };
 var scriptPost = document.createElement('script');
-scriptPost.src = "https://" + URL_DO_BLOG + "/feeds/posts/default/-/" + mangaParametros + "?alt=json-in-script&callback=processarPaginasManga&max-results=1";
+scriptPost.src = "rss2json.com" + URL_DO_BLOG + "/feeds/posts/default/-/" + mangaParametros + "&callback=processarPaginasManga&api_key=oyg4skcndbyzbe60p3moxbyr6scwunwhuolv90ay";
 document.body.appendChild(scriptPost);
 var scriptLista = document.createElement('script');
-scriptLista.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=listarCapitulosBlogger&max-results=50";
+scriptLista.src = "rss2json.com" + URL_DO_BLOG + "/feeds/posts/default&callback=listarCapitulosBlogger&api_key=oyg4skcndbyzbe60p3moxbyr6scwunwhuolv90ay";
 document.body.appendChild(scriptLista);
-selectCapitulo.addEventListener('change', function(e) { if (e.target.value) window.location.search = "?manga=" + e.target.value; });
-btnAnt.onclick = function() { if (capituloAtual > 1) window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual - 1); };
-btnProx.onclick = function() { window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual + 1); };
-if (capituloAtual <= 1) btnAnt.disabled = true;
-selectModo.addEventListener('change', function(e) { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
 }
-function renderizarleitor() {
+function renderizarLeitor() {
 mainLayout.innerHTML = "";
 if (modoLeitura === "cascade") {
 mainLayout.className = "mode-cascade";
@@ -285,10 +253,10 @@ img.src = listaImagens[indexPaginaAtual];
 img.onclick = function(e) {
 if (e.offsetX > img.clientWidth / 2) {
 if (indexPaginaAtual < listaImagens.length - 1) { indexPaginaAtual++; renderizarLeitor(); window.scrollTo(0,0); }
-else { btnProx.click(); }
+else { if(btnProx && !btnProx.disabled) btnProx.click(); }
 } else {
 if (indexPaginaAtual > 0) { indexPaginaAtual--; renderizarLeitor(); window.scrollTo(0,0); }
-else { btnAnt.click(); }
+else { if(btnAnt && !btnAnt.disabled) btnAnt.click(); }
 }
 };
 mainLayout.appendChild(img);
