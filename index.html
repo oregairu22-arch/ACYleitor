@@ -40,6 +40,7 @@
     </main>
 
     <script>
+        // CONFIGURAÇÃO DO SEU BLOG DO BLOGGER
         var URL_DO_BLOG = "://blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
@@ -149,14 +150,23 @@
         };
 
         function montarEstruturaLeitor() {
-            headerControls.innerHTML = `<a href="${window.location.pathname}" class="btn-nav" style="background:#444;">🏠 Menu</a><button id="btn-ant" class="btn-nav">◀ Ant</button><select id="select-capitulo"><option value="">Buscando...</option></select><button id="btn-prox" class="btn-nav">Prox ▶</button><select id="select-modo"><option value="cascade">Modo: Cascata</option><option value="single">Modo: Página por Página</option></select><span id="page-counter" style="display: none;">Pág: 1/1</span>`;
-            mainLayout.innerHTML = '<p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>';
-            
-            btnAnt = document.getElementById('btn-ant');
-            btnProx = document.getElementById('btn-prox');
-            selectCapitulo = document.getElementById('select-capitulo');
-            selectModo = document.getElementById('select-modo');
-            pageCounter = document.getElementById('page-counter');
+            headerControls.innerHTML = '<a href="' + window.location.pathname + '" class="btn-nav" style="background:#444;">🏠 Menu</a>' +
+                                       '<button id="btn-ant" class="btn-nav">◀ Ant</button>' +
+                                       '<select id="select-capitulo"><option value="">Buscando...</option></select>' +
+                                       '<button id="btn-prox" class="btn-nav">Prox ▶</button>' +
+                                       '<select id="select-modo">' +
+                                       '<option value="cascade">Modo: Cascata</option>' +
+                                       '<option value="single">Modo: Página por Página</option>' +
+                                       '</select>' +
+                                       '<span id="page-counter" style="display: none;">Pág: 1/1</span>';
+                                       
+Use o código com cuidado.
+mainLayout.innerHTML = 'Conectando ao banco de dados do Blogger...';
+btnAnt = document.getElementById('btn-ant');
+btnProx = document.getElementById('btn-prox');
+selectCapitulo = document.getElementById('select-capitulo');
+selectModo = document.getElementById('select-modo');
+pageCounter = document.getElementById('page-counter');
 statusMsg = document.getElementById('status-msg');
 }
 function carregarDadosLeitor() {
