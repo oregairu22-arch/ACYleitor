@@ -41,8 +41,8 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO MANUAL DEFINITIVA
-        var URL_DO_BLOG = "://yanderescan.blogspot.com"; 
+        // CONFIGURAÇÃO DO SEU BLOG
+        var URL_DO_BLOG = "://blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
         var mangaParametros = urlParams.get('manga');
@@ -70,48 +70,56 @@
         var timeoutSeguranca = setTimeout(function() {
             statusMsg.innerHTML = "O Blogger não enviou os dados do mangá.<br><br>" +
             "<span style='color:#aaa; font-weight:normal; font-size:14px;'>" +
-            "Se o site travar aqui, verifique se a postagem do capítulo está como <strong>Publicada</strong> no Blogger e se possui exatamente a tag marcador: <strong>" + mangaParametros + "</strong>" +
+            "Se travar aqui, verifique se a postagem está como <strong>Publicada</strong> no Blogger e se possui a tag marcador exata: <strong>" + mangaParametros + "</strong>" +
             "</span>";
         }, 5000);
 
         // API 1: Monta a lista dropdown com os capítulos cadastrados no Blogger
         window.listarCapitulosBlogger = function(data) {
-            if (data && data.feed && data.feed.entry) {
-                selectCapitulo.innerHTML = "";
-                var capsEncontrados = [];
-                
-                data.feed.entry.forEach(function(post) {
-                    if (post.category) {
-                        post.category.forEach(function(cat) {
-                            if (cat.term && cat.term.indexOf(mangaNomeBase + "-") === 0) {
+            if (!data) return;
+            if (!data.feed) return;
+            if (!data.feed.entry) return;
+
+            selectCapitulo.innerHTML = "";
+            var capsEncontrados = [];
+            
+            data.feed.entry.forEach(function(post) {
+                if (post.category) {
+                    post.category.forEach(function(cat) {
+                        if (cat.term) {
+                            if (cat.term.indexOf(mangaNomeBase + "-") === 0) {
                                 var numCap = parseInt(cat.term.replace(mangaNomeBase + "-", ""));
-                                if (!isNaN(numCap) && capsEncontrados.indexOf(numCap) === -1) {
-                                    capsEncontrados.push(numCap);
+                                if (!isNaN(numCap)) {
+                                    if (capsEncontrados.indexOf(numCap) === -1) {
+                                        capsEncontrados.push(numCap);
+                                    }
                                 }
                             }
-                        });
-                    }
-                });
-                
-                capsEncontrados.sort(function(a, b) { return b - a; });
-                capsEncontrados.forEach(function(cap) {
-                    var opt = document.createElement('option');
-                    opt.value = mangaNomeBase + "-" + cap;
-                    opt.textContent = "Capítulo " + String(cap).padStart(2, '0');
-                    if (cap === capituloAtual) opt.selected = true;
-                    selectCapitulo.appendChild(opt);
-                });
-                if(capsEncontrados.length === 0) selectCapitulo.innerHTML = "<option>Nenhum capítulo</option>";
-            }
+                        }
+                    });
+                }
+            });
+            
+            capsEncontrados.sort(function(a, b) { return b - a; });
+            capsEncontrados.forEach(function(cap) {
+                var opt = document.createElement('option');
+                opt.value = mangaNomeBase + "-" + cap;
+                opt.textContent = "Capítulo " + String(cap).padStart(2, '0');
+                if (cap === capituloAtual) opt.selected = true;
+                selectCapitulo.appendChild(opt);
+            });
+            if(capsEncontrados.length === 0) selectCapitulo.innerHTML = "<option>Nenhum capítulo</option>";
         };
 
         // API 2: Carrega e limpa as imagens da postagem
         window.processarPaginasManga = function(data) {
             clearTimeout(timeoutSeguranca);
             try {
-                if (!data || !data.feed || !data.feed.entry) {
+                if (!data) { statusMsg.innerHTML = "Erro: Sem resposta do Blogger."; return; }
+                if (!data.feed) { statusMsg.innerHTML = "Erro: Estrutura do feed inválida."; return; }
+                if (!data.feed.entry) {
                     statusMsg.innerHTML = "Marcador não encontrado!<br><br>" +
-                    "<span style='color:#aaa; font-weight:normal; font-size:14px;'>O leitor procurou pela tag '<strong>" + mangaParametros + "</strong>' no Blogger mas ela não existe ou o post está em rascunho.</span>";
+                    "<span style='color:#aaa; font-weight:normal; font-size:14px;'>O leitor procurou pela tag '<strong>" + mangaParametros + "</strong>' no Blogger, mas ela não existe ou o post está em rascunho.</span>";
                     return;
                 }
 
@@ -134,7 +142,6 @@
                 for (var i = 0; i < imagensTags.length; i++) {
                     var urlLimpa = imagensTags[i].src.replace(/\/s[0-9]+(-c)?\//, '/s1600/');
                     urlLimpa = urlLimpa.replace(/=w[0-9]+-h[0-9]+.*/, '=s0');
-                    // Remove protocolo misto se necessário para evitar bloqueios de segurança
                     urlLimpa = urlLimpa.replace("http://", "https://");
                     listaImagens.push(urlLimpa);
                 }
@@ -161,15 +168,17 @@
                 pageCounter.textContent = "Pág: " + (indexPaginaAtual + 1) + " / " + listaImagens.length;
                 var img = document.createElement('img');
                 img.src = listaImagens[indexPaginaAtual];
-                img.addEventListener('click', function(e) {
-                    if (e.offsetX > img.clientWidth / 2) {
+                img.style.cursor = "pointer";
+                img.onclick = function(e) {
+                    var larguraImagem = img.clientWidth;
+                    if (e.offsetX > larguraImagem / 2) {
                         if (indexPaginaAtual < listaImagens.length - 1) { indexPaginaAtual++; renderizarLeitor(); window.scrollTo(0,0); }
                         else { btnProx.click(); }
                     } else {
                         if (indexPaginaAtual > 0) { indexPaginaAtual--; renderizarLeitor(); window.scrollTo(0,0); }
                         else { btnAnt.click(); }
                     }
-                });
+                };
                 container.appendChild(img);
             }
         }
@@ -178,16 +187,14 @@
         btnAnt.onclick = function() { if (capituloAtual > 1) window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual - 1); };
         btnProx.onclick = function() { window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual + 1); };
         if (capituloAtual <= 1) btnAnt.disabled = true;
-        selectModo.addEventListener('change', function(e) { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
-
-        function carregarSistema() {
-            if (!mangaParametros) {
-                clearTimeout(timeoutSeguranca);
+selectModo.addEventListener('change', function(e) { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
+function carregarSistema() {
+if (!mangaParametros) {
+clearTimeout(timeoutSeguranca);
 statusMsg.innerHTML = "URL Incompleta.
 Acesse usando: ?manga=nome-do-manga-1";
 return;
 }
-// Injeção puramente limpa para quebrar bloqueios CORS da Google
 var scriptPost = document.createElement('script');
 scriptPost.src = "https://" + URL_DO_BLOG + "/feeds/posts/default/-/" + mangaParametros + "?alt=json-in-script&callback=processarPaginasManga&max-results=1";
 document.body.appendChild(scriptPost);
