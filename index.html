@@ -53,7 +53,7 @@
 
     <script>
         // CONFIGURAÇÃO DO SEU BLOG
-        var URL_DO_BLOG = "://blogspot.com"; 
+        var URL_DO_BLOG = "://yanderescan.blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
         var mangaParametros = urlParams.get('manga');
@@ -97,19 +97,21 @@
 
         function carregarDadosCatalogo() {
             var script = document.createElement('script');
-            script.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=gerarCatalogoAutomatico&max-results=150";
+            script.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=gerarCatalogoAutomatico&max-results=50";
             document.body.appendChild(script);
         }
 
         window.gerarCatalogoAutomatico = function(data) {
             var grid = document.getElementById('catalog-grid');
+            if (!grid) return;
+            
             if (!data || !data.feed || !data.feed.entry) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado no catálogo.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado no catálogo ou feed desativado.</p>";
                 return;
             }
 
-            grid.innerHTML = ""; // Limpa texto de carregando
-            var catalogados = {}; // Evita duplicar mangás com capítulos diferentes
+            grid.innerHTML = ""; 
+            var catalogados = {}; 
 
             data.feed.entry.forEach(function(post) {
                 if (!post.category) return;
@@ -121,29 +123,35 @@
                         var nomeManga = parts.join('-');
                         
                         if (!isNaN(capNum)) {
-                            // Se o mangá ainda não foi adicionado ou se este capítulo for mais recente
+                            // Se a obra ainda não existe ou encontramos um capítulo mais recente
                             if (!catalogados[nomeManga] || capNum > catalogados[nomeManga].ultimoCap) {
-                                // Captura a primeira imagem do post como capa
-                                var capaUrl = "https://placehold.co";
+                                
+                                // Coleta de imagem de forma blindada
+                                var capaUrl = "https://unsplash.com"; // Capa provisória se falhar
                                 if (post.content && post.content['$t']) {
-                                    var tempDiv = document.createElement('div');
-                                    tempDiv.innerHTML = post.content['$t'];
-                                    var primeiraImg = tempDiv.querySelector('img');
-                                    if (primeiraImg) {
-                                        capaUrl = primeiraImg.src.replace(/\/s[0-9]+(-c)?\//, '/s600/');
-                                        capaUrl = capaUrl.replace(/=w[0-9]+-h[0-9]+.*/, '=s0');
+                                    var txtHtml = post.content['$t'];
+                                    var idxImg = txtHtml.indexOf('<img');
+                                    if (idxImg !== -1) {
+                                        var idxSrc = txtHtml.indexOf('src="', idxImg);
+                                        if (idxSrc !== -1) {
+                                            var fimSrc = txtHtml.indexOf('"', idxSrc + 5);
+                                            if (fimSrc !== -1) {
+                                                capaUrl = txtHtml.substring(idxSrc + 5, fimSrc);
+                                                capaUrl = capaUrl.replace(/\/s[0-9]+(-c)?\//, '/s600/').replace(/=w[0-9]+-h[0-9]+.*/, '=s0');
+                                            }
+                                        }
                                     }
                                 }
 
-                                // Trata o título limpando o número do capítulo para ficar estético
-                                var textoTitulo = post.title['$t'] || "Mangá";
-                                var partesTitulo = textoTitulo.split('-');
-                                if (partesTitulo.length > 1) { partesTitulo.pop(); }
-                                var tituloLimpo = partesTitulo.join('-').trim();
+                                // Limpeza estática simples do título
+                                var rawTitulo = (post.title && post.title['$t']) ? post.title['$t'] : "Mangá";
+                                var corte = rawTitulo.split('-');
+                                if (corte.length > 1) { corte.pop(); }
+                                var tituloLimpo = corte.join('-').replace(/^\s+|\s+$/g, ''); // Trim alternativo compatível
 
                                 catalogados[nomeManga] = {
-                                    titulo: tituloLimpo,
-                                    slug: cat.term, // Mantém a tag original para o link
+                                    titulo: tituloLimpo || rawTitulo,
+                                    slug: cat.term, 
                                     ultimoCap: capNum,
                                     capa: capaUrl
                                 };
@@ -153,10 +161,9 @@
                 });
             });
 
-            // Desenha os cards na tela
             var keys = Object.keys(catalogados);
             if (keys.length === 0) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada corretamente encontrada.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada no padrão 'nome-capitulo' foi encontrada.</p>";
                 return;
             }
 
@@ -168,24 +175,22 @@
                 
                 card.innerHTML = `
                     <div class="manga-cover-wrapper">
-                        <img src="${manga.capa}" class="manga-cover" alt="${manga.titulo}" loading="lazy">
+                        <img src="${manga.capa}" class="manga-cover" alt="${manga.titulo}">
                     </div>
                     <div class="manga-info">
-                        <div class="manga-title">${manga.titulo}</div>
-                        <div class="manga-latest">Cap. ${String(manga.ultimoCap).padStart(2, '0')}</div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        };
+${manga.titulo}
+Cap. ${String(manga.ultimoCap).padStart(2, '0')}
 
-        // ==========================================
+`;
+grid.appendChild(card);
+});
+};
+// ==========================================
 // FLUXO 2: SISTEMA DO LEITOR (FOOLSLIDE)
 // ==========================================
 function montarEstruturaLeitor() {
 headerControls.innerHTML = <a href="${window.location.pathname}" class="btn-nav" style="background:#444;">🏠 Menu</a> <button id="btn-ant" class="btn-nav">◀ Ant</button> <select id="select-capitulo"><option value="">Buscando...</option></select> <button id="btn-prox" class="btn-nav">Prox ▶</button> <select id="select-modo"> <option value="cascade">Modo: Cascata</option> <option value="single">Modo: Página por Página</option> </select> <span id="page-counter" style="display: none;">Pág: 1/1</span>;
 mainLayout.innerHTML = <p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>;
-// Reatribui os elementos criados no header
 btnAnt = document.getElementById('btn-ant');
 btnProx = document.getElementById('btn-prox');
 selectCapitulo = document.getElementById('select-capitulo');
@@ -263,7 +268,6 @@ document.body.appendChild(scriptPost);
 var scriptLista = document.createElement('script');
 scriptLista.src = "https://" + URL_DO_BLOG + "/feeds/posts/default?alt=json-in-script&callback=listarCapitulosBlogger&max-results=50";
 document.body.appendChild(scriptLista);
-// Configura os eventos dos seletores do Leitor
 selectCapitulo.addEventListener('change', function(e) { if (e.target.value) window.location.search = "?manga=" + e.target.value; });
 btnAnt.onclick = function() { if (capituloAtual > 1) window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual - 1); };
 btnProx.onclick = function() { window.location.search = "?manga=" + mangaNomeBase + "-" + (capituloAtual + 1); };
