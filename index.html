@@ -40,7 +40,7 @@
     </main>
 
     <script>
-        var URL_DO_BLOG = "://blogspot.com"; 
+        var URL_DO_BLOG = "://yanderescan.blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
         var mangaParametros = urlParams.get('manga');
@@ -159,6 +159,7 @@
         function carregarDadosLeitor() {
             var timeoutSeguranca = setTimeout(function() {
                 if(statusMsg) {
+
 statusMsg.innerHTML = "O Blogger demorou para responder.
 
 Verifique se o post está publicado com a tag: " + mangaParametros + "";
