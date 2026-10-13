@@ -7,25 +7,17 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #121212; color: #fff; font-family: sans-serif; padding-top: 70px; user-select: none; }
-        
-        /* Barra Superior */
         header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #1e1e1e; border-bottom: 2px solid #333; display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 0 10px; }
         .btn-nav, .btn-home { background-color: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; text-decoration: none; transition: background 0.2s; }
         .btn-nav:hover, .btn-home:hover { background-color: #ff6b81; }
         .btn-nav:disabled { background-color: #444; color: #888; cursor: not-allowed; }
         select { background: #2f3542; color: white; border: 1px solid #57606f; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        
-        /* Container Principal */
         #main-layout { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
-        
-        /* Estilos do Modo Leitor */
         .mode-cascade img { max-width: 100%; height: auto; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: block; margin-left: auto; margin-right: auto; }
         .mode-single img { max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.7); display: block; margin-left: auto; margin-right: auto; }
         .msg { text-align: center; padding: 40px; color: #ff4757; font-weight: bold; line-height: 1.6; }
         #page-counter { font-size: 13px; color: #a4b0be; font-weight: bold; }
-        
-        /* Estilos do Modo Catálogo (Página Inicial) */
         .catalog-title { text-align: center; font-size: 28px; margin-bottom: 30px; color: #ff4757; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         .grid-catalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; padding-bottom: 5px; }
         .manga-card { background: #1e1e1e; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; text-decoration: none; display: flex; flex-direction: column; border: 1px solid #2d2d2d; }
@@ -39,20 +31,15 @@
 </head>
 <body>
 
-    <!-- BARRA SUPERIOR DINÂMICA -->
     <header>
-        <div class="controls" id="header-controls">
-            <!-- Injetado via JavaScript -->
-        </div>
+        <div class="controls" id="header-controls"></div>
     </header>
 
-    <!-- ÁREA PRINCIPAL DO CONTEÚDO -->
     <main id="main-layout">
-        <!-- Injetado via JavaScript -->
+        <!-- Injetado via JS -->
     </main>
 
     <script>
-        // CONFIGURAÇÃO DO SEU BLOG DO BLOGGER
         var URL_DO_BLOG = "://blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
@@ -61,7 +48,6 @@
         var mainLayout = document.getElementById('main-layout');
         var headerControls = document.getElementById('header-controls');
 
-        // Variáveis do Leitor
         var mangaNomeBase = "";
         var capituloAtual = 1;
         var listaImagens = [];
@@ -69,7 +55,6 @@
         var modoLeitura = "cascade";
         var btnAnt, btnProx, selectCapitulo, selectModo, pageCounter, statusMsg;
 
-        // Gerenciador de Inicialização
         if (mangaParametros) {
             var partes = mangaParametros.split('-');
             capituloAtual = parseInt(partes.pop());
@@ -81,16 +66,10 @@
             carregarDadosCatalogo();
         }
 
-        // ==========================================
-        // FLUXO 1: SISTEMA DO CATÁLOGO (HOME)
-        // ==========================================
         function montarEstruturaCatalogo() {
             document.title = "Yandere Scan - Catálogo Gratuito";
             headerControls.innerHTML = '<a href="' + window.location.pathname + '" class="btn-home">🏠 YANDERE SCAN</a>';
-            mainLayout.innerHTML = '<h1 class="catalog-title">Catálogo de Obras</h1>' +
-                                   '<div class="grid-catalog" id="catalog-grid">' +
-                                   '<p class="msg" style="color: #888; grid-column: 1/-1;">Conectando ao banco de dados do Blogger...</p>' +
-                                   '</div>';
+            mainLayout.innerHTML = '<h1 class="catalog-title">Catálogo de Obras</h1><div class="grid-catalog" id="catalog-grid"><p class="msg" style="color: #888; grid-column: 1/-1;">Conectando ao banco de dados do Blogger...</p></div>';
         }
 
         function carregarDadosCatalogo() {
@@ -102,7 +81,6 @@
         window.gerarCatalogoAutomatico = function(data) {
             var grid = document.getElementById('catalog-grid');
             if (!grid) return;
-            
             if (!data || !data.feed || !data.feed.entry) {
                 grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhum mangá encontrado ou o feed do seu Blogger está desativado.</p>";
                 return;
@@ -113,7 +91,6 @@
 
             data.feed.entry.forEach(function(post) {
                 if (!post.category) return;
-                
                 post.category.forEach(function(cat) {
                     if (cat.term && cat.term.indexOf('-') !== -1) {
                         var parts = cat.term.split('-');
@@ -122,7 +99,6 @@
                         
                         if (!isNaN(capNum)) {
                             if (!catalogados[nomeManga] || capNum > catalogados[nomeManga].ultimoCap) {
-                                
                                 var capaUrl = "https://unsplash.com"; 
                                 if (post.content && post.content['$t']) {
                                     var txtHtml = post.content['$t'];
@@ -158,7 +134,7 @@
 
             var keys = Object.keys(catalogados);
             if (keys.length === 0) {
-                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra com o marcador formatado (ex: 'bootsleg-1') foi encontrada.</p>";
+                grid.innerHTML = "<p class='msg' style='grid-column:1/-1;'>Nenhuma obra formatada foi encontrada.</p>";
                 return;
             }
 
@@ -167,37 +143,21 @@
                 var card = document.createElement('a');
                 card.className = "manga-card";
                 card.href = window.location.pathname + "?manga=" + manga.slug;
-                
-                card.innerHTML = '<div class="manga-cover-wrapper">' +
-                                 '<img src="' + manga.capa + '" class="manga-cover" alt="' + manga.titulo + '">' +
-                                 '</div>' +
-                                 '<div class="manga-info">' +
-                                 '<div class="manga-title">' + manga.titulo + '</div>' +
-                                 '<div class="manga-latest">Cap. ' + String(manga.ultimoCap).padStart(2, '0') + '</div>' +
-                                 '</div>';
+                card.innerHTML = `<div class="manga-cover-wrapper"><img src="${manga.capa}" class="manga-cover" alt="${manga.titulo}"></div><div class="manga-info"><div class="manga-title">${manga.titulo}</div><div class="manga-latest">Cap. ${String(manga.ultimoCap).padStart(2, '0')}</div></div>`;
+                grid.appendChild(card);
+            });
+        };
+
+        function montarEstruturaLeitor() {
+            headerControls.innerHTML = `<a href="${window.location.pathname}" class="btn-nav" style="background:#444;">🏠 Menu</a><button id="btn-ant" class="btn-nav">◀ Ant</button><select id="select-capitulo"><option value="">Buscando...</option></select><button id="btn-prox" class="btn-nav">Prox ▶</button><select id="select-modo"><option value="cascade">Modo: Cascata</option><option value="single">Modo: Página por Página</option></select><span id="page-counter" style="display: none;">Pág: 1/1</span>`;
+            mainLayout.innerHTML = '<p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>';
+            
+            btnAnt = document.getElementById('btn-ant');
+            btnProx = document.getElementById('btn-prox');
+            selectCapitulo = document.getElementById('select-capitulo');
+            selectModo = document.getElementById('select-modo');
+            pageCounter = document.getElementById('page-counter');
 Use o código com cuidado.
-grid.appendChild(card);
-});
-};
-// ==========================================
-// FLUXO 2: SISTEMA DO LEITOR (FOOLSLIDE)
-// ==========================================
-function montarEstruturaLeitor() {
-headerControls.innerHTML = '🏠 Menu' +
-'◀ Ant' +
-'Buscando...' +
-'Prox ▶' +
-'' +
-'Modo: Cascata' +
-'Modo: Página por Página' +
-'' +
-'Pág: 1/1';
-mainLayout.innerHTML = 'Conectando ao banco de dados do Blogger...';
-btnAnt = document.getElementById('btn-ant');
-btnProx = document.getElementById('btn-prox');
-selectCapitulo = document.getElementById('select-capitulo');
-selectModo = document.getElementById('select-modo');
-pageCounter = document.getElementById('page-counter');
 statusMsg = document.getElementById('status-msg');
 }
 function carregarDadosLeitor() {
@@ -205,8 +165,7 @@ var timeoutSeguranca = setTimeout(function() {
 if(statusMsg) {
 statusMsg.innerHTML = "O Blogger demorou para responder.
 
-" +
-"Verifique se o post está publicado com a tag: " + mangaParametros + "";
+Verifique se o post está publicado com a tag: " + mangaParametros + "";
 }
 }, 6000);
 window.listarCapitulosBlogger = function(data) {
