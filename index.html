@@ -248,7 +248,7 @@ var urlLimpa = imagensTags[i].src.replace(//s[0-9]+(-c)?//, '/s1600/');
 urlLimpa = urlLimpa.replace(/=w[0-9]+-h[0-9]+.*/, '=s0').replace("http://", "https://");
 listaImagens.push(urlLimpa);
 }
-renderizarLeitor();
+renderizarleitor();
 } catch (error) {
 statusMsg.textContent = "Erro: " + error.message;
 }
@@ -265,7 +265,7 @@ btnProx.onclick = function() { window.location.search = "?manga=" + mangaNomeBas
 if (capituloAtual <= 1) btnAnt.disabled = true;
 selectModo.addEventListener('change', function(e) { modoLeitura = e.target.value; indexPaginaAtual = 0; renderizarLeitor(); });
 }
-function renderizarLeitor() {
+function renderizarleitor() {
 mainLayout.innerHTML = "";
 if (modoLeitura === "cascade") {
 mainLayout.className = "mode-cascade";
