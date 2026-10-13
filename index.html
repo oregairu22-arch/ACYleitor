@@ -52,7 +52,7 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO DO SEU BLOG (Conectado com o Yandere Scan)
+        // CONFIGURAÇÃO DO SEU BLOG
         var URL_DO_BLOG = "://blogspot.com"; 
 
         var urlParams = new URLSearchParams(window.location.search);
@@ -67,7 +67,7 @@
         var listaImagens = [];
         var indexPaginaAtual = 0;
         var modoLeitura = "cascade";
-        var btnAnt, btnProx, selectCapitulo, selectModo, pageCounter;
+        var btnAnt, btnProx, selectCapitulo, selectModo, pageCounter, statusMsg;
 
         // Verifica se abre o LEITOR ou o CATÁLOGO
         if (mangaParametros) {
@@ -136,7 +136,10 @@
                                 }
 
                                 // Trata o título limpando o número do capítulo para ficar estético
-                                var tituloLimpo = post.title['$t'].split('-')[0].trim();
+                                var textoTitulo = post.title['$t'] || "Mangá";
+                                var partesTitulo = textoTitulo.split('-');
+                                if (partesTitulo.length > 1) { partesTitulo.pop(); }
+                                var tituloLimpo = partesTitulo.join('-').trim();
 
                                 catalogados[nomeManga] = {
                                     titulo: tituloLimpo,
@@ -177,20 +180,11 @@
         };
 
         // ==========================================
-        // FLUXO 2: SISTEMA DO LEITOR (FOOLSLIDE)
-        // ==========================================
-        function montarEstruturaLeitor() {
-            headerControls.innerHTML = `
-🏠 Menu
-◀ Ant
-<b:if expr='data:view.isPost'>Buscando...</b:if>
-Prox ▶
-
-Modo: Cascata
-Modo: Página por Página
-
-Pág: 1/1
-; mainLayout.innerHTML = Conectando ao banco de dados do Blogger...`;
+// FLUXO 2: SISTEMA DO LEITOR (FOOLSLIDE)
+// ==========================================
+function montarEstruturaLeitor() {
+headerControls.innerHTML = <a href="${window.location.pathname}" class="btn-nav" style="background:#444;">🏠 Menu</a> <button id="btn-ant" class="btn-nav">◀ Ant</button> <select id="select-capitulo"><option value="">Buscando...</option></select> <button id="btn-prox" class="btn-nav">Prox ▶</button> <select id="select-modo"> <option value="cascade">Modo: Cascata</option> <option value="single">Modo: Página por Página</option> </select> <span id="page-counter" style="display: none;">Pág: 1/1</span>;
+mainLayout.innerHTML = <p id="status-msg" class="msg" style="color: #888;">Conectando ao banco de dados do Blogger...</p>;
 // Reatribui os elementos criados no header
 btnAnt = document.getElementById('btn-ant');
 btnProx = document.getElementById('btn-prox');
